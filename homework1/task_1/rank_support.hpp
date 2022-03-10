@@ -79,11 +79,10 @@ public:
 
         uint64_t from = r_b_i * b_length;
         uint64_t len = i - from + 1;
-        if (len > 0){
-            auto vec_ptr = b_ptr->get();
-            uint64_t arr_int = get_int(from, len, vec_ptr);
-            res += popcount(arr_int);
-        }
+
+        auto vec_ptr = b_ptr->get();
+        uint64_t arr_int = get_int(from, len, vec_ptr);
+        res += popcount(arr_int);
 
         return res;
     }
