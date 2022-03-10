@@ -78,7 +78,7 @@ public:
         res += r_b_v[r_b_i];
 
         uint64_t from = r_b_i * b_length;
-        uint64_t len = i - from;
+        uint64_t len = i - from + 1;
         if (len > 0){
             auto vec_ptr = b_ptr->get();
             uint64_t arr_int = get_int(from, len, vec_ptr);
@@ -91,11 +91,10 @@ public:
     // Used logic from sdsl-lite read_int function
     // https://github.com/simongog/sdsl-lite/blob/c32874cb2d8524119f25f3b501526fe692df29f4/include/sdsl/bits.hpp#L501
     uint64_t get_int(uint64_t from, uint64_t len, unsigned long long * vec_ptr) {
-        cout << from << endl;
         uint64_t res = (*vec_ptr) >> from;
 //        cout << len << ", " << bitset<5>(res) << endl;
         res = res & lo_set[len];
-        cout << "block int " << res << endl;
+//        cout << "block int " << res << endl;
         return res;
     }
 
