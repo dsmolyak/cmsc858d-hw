@@ -35,10 +35,6 @@ public:
     }
 
     bool get_at_rank(uint64_t r, std::string& elem) {
-        if (not made_supports){
-            made_supports = true;
-            r_s = new rank_support(b_ptr);
-        }
         if (strings.size() >= r) {
             elem = strings[r];
             return true;

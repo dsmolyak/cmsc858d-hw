@@ -7,10 +7,6 @@ using namespace std::chrono;
 using namespace std;
 
 
-void run_from_load(string &load_name) {
-
-}
-
 void run_single_test(bool save, string &save_name) {
     sparse_array sa;
     sa.create(32);
@@ -37,7 +33,7 @@ void run_single_test(bool save, string &save_name) {
 }
 
 void run_experiment(int get_at_index_calls) {
-    cout << "vector_length, sparsity, microseconds" << endl;
+    cout << "vector_length,sparsity,microseconds" << endl;
     vector<double> sparsities{.01,.05,.1};
     for (int n=4; n < 8; n++){
         for (int i=0; i<sparsities.size(); i++){
@@ -48,13 +44,14 @@ void run_experiment(int get_at_index_calls) {
                 sa.append("sample", pos);
             }
             string elem;
+            sa.get_at_index(size-1, elem);
             auto start = high_resolution_clock::now();
             for (int j=0; j<get_at_index_calls; j++){
                 sa.get_at_index(20, elem);
             }
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(stop - start);
-            cout << size << ", " << sparsities[i] << ", " << duration.count() << endl;
+            cout << size << "," << sparsities[i] << "," << duration.count() << endl;
         }
 
     }
@@ -62,10 +59,8 @@ void run_experiment(int get_at_index_calls) {
 
 int main() {
     string file_name = "test_save";
-//    run_from_load(file_name);
-//    run_single_test(true, file_name);
-    run_experiment(10000);
-//    run_user_input();
+    run_single_test(false, file_name);
+//    run_experiment(10000);
 
     return 0;
 }
