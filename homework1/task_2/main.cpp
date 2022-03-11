@@ -9,13 +9,16 @@ using namespace std;
 // 10011010000010000000010001000001
 
 void run_from_load(string &load_name) {
-    compact::vector<unsigned, 1> b_(0);
+    compact::vector<unsigned, 1> b_(15);
     rank_support r(&b_);
-    r.load(load_name);
+    select_support s(&r);
+    s.load(load_name);
 
-    uint64_t rank_res = r.rank1(0);
-    cout << "rank: " << rank_res << endl;
+    uint64_t select_res = s.select1(6);
+    cout << "select: " << select_res << endl;
     cout << "overhead: " <<  r.overhead() << endl;
+    cout << "b size: " <<  s.b_ptr->size() << endl;
+    for (auto elem : *s.b_ptr) cout << elem;
 }
 
 void run_single_test(bool save, string &save_name) {
@@ -65,27 +68,30 @@ void run_user_input() {
     cout << "overhead: " << r.overhead() << endl;
 }
 
-void run_experiment(int rank_calls) {
-    vector<int> vec_sizes {1000, 5000, 10000, 50000, 100000, 500000, 1000000, 5000000, 10000000};
+void run_experiment(int select_calls) {
     cout << "vector_length, microseconds, overhead" << endl;
-    for (int i=0; i < vec_sizes.size(); i++){
-        compact::vector<unsigned, 1> b(vec_sizes[i]);
+    for (int i=10; i < 20; i++){
+        int size = exp2(i);
+        compact::vector<unsigned, 1> b(size);
+        for (int j=0; j<60; j++){
+            b[j] = 1;
+        }
         rank_support r(&b);
+        select_support s(&r);
         auto start = high_resolution_clock::now();
-        for (int j=0; j<rank_calls; j++){
-            r.rank1(20);
+        for (int j=0; j<select_calls; j++){
+            s.select1(20);
         }
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
-        cout << vec_sizes[i] << ", " << duration.count() << ", " << r.overhead() << endl;
+        cout << size << ", " << duration.count() << ", " << r.overhead() << endl;
     }
 }
 
 int main() {
     string file_name = "test_save";
-
-//    run_from_load(file_name);
-    run_single_test(false, file_name);
+    run_from_load(file_name);
+//    run_single_test(true, file_name);
 //    run_experiment(10000);
 //    run_user_input();
 

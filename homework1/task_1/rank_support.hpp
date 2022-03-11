@@ -26,25 +26,20 @@ public:
 
     rank_support(compact::vector<unsigned, 1> *bit_vector) {
         b_ptr = bit_vector;
-        auto b = *bit_vector;
-        n = b.size();
+        n = b_ptr->size();
         int lg_n = ceil(log2(n));
         s_length = lg_n * lg_n;
         b_length = lg_n;
         s_width = lg_n;
         b_width = ceil(log2(s_length));
 
-//        while (b_ptr->size() % b_length != 0){
-//            b_ptr->push_back(0);
-//        }
-
         r_s = new compact::vector<uint64_t>(s_width);
         r_b = new compact::vector<uint64_t>(b_width);
         r_s->push_back(0);
         r_b->push_back(0);
 
-        int r_s_counter = b[0];
-        int r_b_counter = b[0];
+        int r_s_counter = b_ptr->at(0);
+        int r_b_counter = b_ptr->at(0);
         for (int i = 1; i < n; i += 1) {
             if (i % s_length == 0) {
                 r_s->push_back(r_s_counter);
@@ -53,8 +48,8 @@ public:
             if (i % b_length == 0) {
                 r_b->push_back(r_b_counter);
             }
-            r_s_counter += b[i];
-            r_b_counter += b[i];
+            r_s_counter += b_ptr->at(i);
+            r_b_counter += b_ptr->at(i);
         }
 
         make_lo_set();
@@ -70,18 +65,17 @@ public:
         uint64_t res = 0;
 
         int r_s_i = floor(i / s_length);
-        auto r_s_v = *r_s;
-        res += r_s_v[r_s_i];
+        res += r_s->at(r_s_i);
 
         int r_b_i = floor(i / b_length);
-        auto r_b_v = *r_b;
-        res += r_b_v[r_b_i];
+        res += r_b->at(r_b_i);
 
         uint64_t from = r_b_i * b_length;
         uint64_t len = i - from + 1;
 
         auto vec_ptr = b_ptr->get();
         uint64_t arr_int = get_int(from, len, vec_ptr);
+        cout << arr_int << endl;
         res += popcount(arr_int);
 
         return res;
@@ -89,12 +83,23 @@ public:
 
     // Used logic from sdsl-lite read_int function
     // https://github.com/simongog/sdsl-lite/blob/c32874cb2d8524119f25f3b501526fe692df29f4/include/sdsl/bits.hpp#L501
-    uint64_t get_int(uint64_t from, uint64_t len, unsigned long long * vec_ptr) {
-        uint64_t res = (*vec_ptr) >> from;
-//        cout << len << ", " << bitset<5>(res) << endl;
-        res = res & lo_set[len];
+    uint64_t get_int(uint64_t offset, uint64_t len, const unsigned long long * word) {
+        uint64_t w1 = (*word) >> offset;
+        if ((offset+len) > 64) { // if offset+len > 64
+            return w1 |  // w1 or w2 adepted:
+                   ((*(word+1) & lo_set[(offset+len)&0x3F])   // set higher bits zero
+                           << (64-offset));  // move bits to the left
+        } else {
+            uint64_t res = w1 & lo_set[len];
+            return res;
+        }
+
+
+//        cout << len << ", " << bitset<6>(res) << endl;
+//        cout << bitset<700>((*vec_ptr)) << endl;
+//        res = res & lo_set[len];
 //        cout << "block int " << res << endl;
-        return res;
+//        return res;
     }
 
     uint64_t overhead() {

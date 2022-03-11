@@ -19,26 +19,34 @@ void run_from_load(string &load_name) {
 }
 
 void run_single_test(bool save, string &save_name) {
-    compact::vector<unsigned, 1> b(32);
-    b[0] = 1;
-    b[3] = 1;
-    b[4] = 1;
-    b[6] = 1;
-    b[12] = 1;
-    b[21] = 1;
-    b[25] = 1;
-    b[31] = 1;
-    for (auto elem : b) cout << elem;
-    cout << endl;
+//    compact::vector<unsigned, 1> b(32);
+//    b[0] = 1;
+//    b[3] = 1;
+//    b[4] = 1;
+//    b[6] = 1;
+//    b[12] = 1;
+//    b[21] = 1;
+//    b[25] = 1;
+//    b[31] = 1;
+//    for (auto elem : b) cout << elem;
+//    cout << endl;
+
+    compact::vector<unsigned, 1> b(1024);
+    for (int j=60; j<100; j++){
+        b[j] = 1;
+    }
+
+    auto vec_ptr = b.get();
+    cout << bitset<700>((*vec_ptr)) << endl;
 
     rank_support r(&b);
-    cout << "rank: ";
-    for (int i=0; i<b.size(); i++){
-        cout << i << ":" << r.rank1(i) << endl;
-    }
-    cout << endl;
+//    cout << "rank: ";
+//    for (int i=0; i<b.size(); i++){
+//        cout << i << ":" << r.rank1(i) << endl;
+//    }
+//    cout << endl;
 
-    uint64_t rank_res = r.rank1(0);
+    uint64_t rank_res = r.rank1(615);
     cout << "rank: " << rank_res << endl;
     cout << "overhead: " <<  r.overhead() << endl;
 
@@ -65,10 +73,10 @@ void run_user_input() {
 }
 
 void run_experiment(int rank_calls) {
-    vector<int> vec_sizes {1000, 5000, 10000, 50000, 100000, 500000, 1000000, 5000000, 10000000};
     cout << "vector_length, microseconds, overhead" << endl;
-    for (int i=0; i < vec_sizes.size(); i++){
-        compact::vector<unsigned, 1> b(vec_sizes[i]);
+    for (int i=10; i < 20; i++){
+        int size = exp2(i);
+        compact::vector<unsigned, 1> b(size);
         rank_support r(&b);
         auto start = high_resolution_clock::now();
         for (int j=0; j<rank_calls; j++){
@@ -76,7 +84,7 @@ void run_experiment(int rank_calls) {
         }
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
-        cout << vec_sizes[i] << ", " << duration.count() << ", " << r.overhead() << endl;
+        cout << size << ", " << duration.count() << ", " << r.overhead() << endl;
     }
 }
 
@@ -84,8 +92,8 @@ int main() {
     string file_name = "test_save";
 
 //    run_from_load(file_name);
-//    run_single_test(false, file_name);
-    run_experiment(10000);
+    run_single_test(false, file_name);
+//    run_experiment(10000);
 //    run_user_input();
 
 
