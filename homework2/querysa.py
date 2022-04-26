@@ -149,7 +149,7 @@ if __name__ == '__main__':
     # print(run_query_simpaccel('abra', sa, sequence, preftab, k))
 
     # Loading queries
-    queries_fasta = FastaFile(args.queries)
+    queries_fasta = FastaFile('data/' + args.queries)
 
     # Running queries
     results = {}
