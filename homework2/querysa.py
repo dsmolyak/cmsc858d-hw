@@ -1,4 +1,6 @@
 import argparse
+from collections import defaultdict
+
 import numpy as np
 import pickle
 from os.path import exists
@@ -77,10 +79,7 @@ def run_query_simpaccel(query_seq, sa, sequence, preftab, k):
     while left < right:
         center = int((left + right) / 2)
         center_lcp = min(left_lcp, right_lcp)
-        # print(left, center, right, left_lcp, right_lcp)
         curr_str = sequence[sa[center]+center_lcp:sa[center]+query_len]
-        # print(left, center, right)
-        # print(curr_str, query_seq)
         prev_str = sequence[sa[center-1]+center_lcp:sa[center-1]+query_len]
         curr_lcp = find_lcp(query_seq[center_lcp:], curr_str) + center_lcp
         prev_lcp = find_lcp(query_seq[center_lcp:], prev_str) + center_lcp
@@ -136,40 +135,84 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Loading suffix array files
-    sequence = pickle.load(open(f'out_sa/{args.index}_sequence.pickle', 'rb'))
-    sa = np.load(f'out_sa/{args.index}_sa.npy')
-    use_preftab = exists(f'out_sa/{args.index}_preftab_keys.npy')
-    preftab = {}
-    k = 0
-    if use_preftab:
-        preftab_keys = np.load(f'out_sa/{args.index}_preftab_keys.npy')
-        k = len(preftab_keys[0])
-        preftab_intervals = np.load(f'out_sa/{args.index}_preftab_intervals.npy')
-        for i in range(0, len(preftab_keys)):
-            preftab[preftab_keys[i]] = preftab_intervals[i]
+    # sequence = pickle.load(open(f'out_sa/{args.index}_sequence.pickle', 'rb'))
+    # sa = np.load(f'out_sa/{args.index}_sa.npy')
+    # use_preftab = exists(f'out_sa/{args.index}_preftab_keys.npy')
+    # preftab = {}
+    # k = 0
+    # if use_preftab:
+    #     preftab_keys = np.load(f'out_sa/{args.index}_preftab_keys.npy')
+    #     k = len(preftab_keys[0])
+    #     preftab_intervals = np.load(f'out_sa/{args.index}_preftab_intervals.npy')
+    #     for i in range(0, len(preftab_keys)):
+    #         preftab[preftab_keys[i]] = preftab_intervals[i]
 
     # Loading queries
     queries_fasta = FastaFile('data/' + args.queries)
 
-    # Running queries
-    results = {}
-    start_time = time.time()
-    for i in range(0, len(queries_fasta.references)):
-        query_name = queries_fasta.references[i]
-        query_seq = queries_fasta.fetch(query_name)
-        print(query_name, query_seq)
-        if args.query_mode == 'naive':
-            results[query_name] = run_query_naive(query_seq, sa, sequence, preftab, k)
-        elif args.query_mode == 'simpaccel':
-            results[query_name] = run_query_simpaccel(query_seq, sa, sequence, preftab, k)
-        else:
-            print('not a valid query method')
-    end_time = time.time() - start_time
-    print(end_time)
+    # Generating report data
+    f_query_len = open('query_length.csv', 'w')
+    f_query_len.write('seq_len,k,method,query_size,query_time\n')
+    # f_query_time = open('query_time.csv', 'w')
+    # f_query_time.write('seq_len,k,method,query_time\n')
 
-    with open(f'./out_query/{args.output}.txt', 'w') as f:
-        for query_name, result_list in results.items():
-            result_str = f'{query_name}\t{len(result_list)}'
-            for result in result_list:
-                result_str += f'\t{result}'
-            f.write(result_str+'\n')
+    for seq_len in [1e5, 2.5e5, 5e5, 1e6, 2e6]:
+        query_len_dict = defaultdict(list)
+        seq_len = int(seq_len)
+        sequence = pickle.load(open(f'out_sa/{args.index}_{seq_len}_sequence.pickle', 'rb'))
+        sa = np.load(f'out_sa/{args.index}_{seq_len}_sa.npy')
+
+        for k in [10]:  # [0, 5, 10, 20, 30]:
+            for method in ['naive']:  #, 'simpaccel']:
+                preftab = {}
+                if k:
+                    preftab_keys = np.load(f'out_sa/{args.index}_{seq_len}_{k}_preftab_keys.npy')
+                    preftab_intervals = np.load(f'out_sa/{args.index}_{seq_len}_{k}_preftab_intervals.npy')
+                    for i in range(0, len(preftab_keys)):
+                        preftab[preftab_keys[i]] = preftab_intervals[i]
+
+                # start_time = time.time()
+                for i in range(0, len(queries_fasta.references)):
+                    query_name = queries_fasta.references[i]
+                    query_seq = queries_fasta.fetch(query_name)
+                    if method == 'naive':
+                        start_time = time.time()
+                        run_query_naive(query_seq, sa, sequence, preftab, k)
+                        query_time = time.time() - start_time
+                        query_len_dict[len(query_seq)].append(query_time)
+                    elif method == 'simpaccel':
+                        run_query_simpaccel(query_seq, sa, sequence, preftab, k)
+                # query_time = time.time() - start_time
+                # row = f'{seq_len},{k},{method},{query_time}\n'
+                # print(row)
+                # f_query_time.write(row)
+
+        for query_len, time_list in query_len_dict.items():
+            avg_time = np.mean(time_list)
+            row = f'{seq_len},{k},{method},{query_len},{avg_time}\n'
+            print(row)
+            f_query_len.write(row)
+
+
+    # Running queries
+    # results = {}
+    # start_time = time.time()
+    # for i in range(0, len(queries_fasta.references)):
+    #     query_name = queries_fasta.references[i]
+    #     query_seq = queries_fasta.fetch(query_name)
+    #     print(query_name, query_seq)
+    #     if args.query_mode == 'naive':
+    #         results[query_name] = run_query_naive(query_seq, sa, sequence, preftab, k)
+    #     elif args.query_mode == 'simpaccel':
+    #         results[query_name] = run_query_simpaccel(query_seq, sa, sequence, preftab, k)
+    #     else:
+    #         print('not a valid query method')
+    # end_time = time.time() - start_time
+    # print(end_time)
+    #
+    # with open(f'./out_query/{args.output}.txt', 'w') as f:
+    #     for query_name, result_list in results.items():
+    #         result_str = f'{query_name}\t{len(result_list)}'
+    #         for result in result_list:
+    #             result_str += f'\t{result}'
+    #         f.write(result_str+'\n')
