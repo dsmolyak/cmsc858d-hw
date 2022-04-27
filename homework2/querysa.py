@@ -11,7 +11,7 @@ def run_query_naive(query_seq, sa, sequence, preftab, k):
     query_len = len(query_seq)
     start_left = 0
     start_right = len(sa)
-    if preftab:
+    if preftab and query_seq[:k] in preftab:
         interval = preftab[query_seq[:k]]
         start_left, start_right = interval[0], interval[1]
 
@@ -28,6 +28,8 @@ def run_query_naive(query_seq, sa, sequence, preftab, k):
             result_left = center
             break
         elif curr_str < query_seq:
+            if right-left == 1:
+                break
             left = center
         else:
             right = center
@@ -63,22 +65,22 @@ def find_lcp(str1, str2):
 def run_query_simpaccel(query_seq, sa, sequence, preftab, k):
     query_len = len(query_seq)
     start_left, start_right = 0, len(sa)
-    start_lcp = 0
-    if preftab:
+    if preftab and query_seq[:k] in preftab:
         interval = preftab[query_seq[:k]]
         start_left, start_right = interval[0], interval[1]
-        start_lcp = k
 
     found = False
     # Try finding left side of range
     result_left = 0
     left, right = start_left, start_right
-    left_lcp, right_lcp = start_lcp, start_lcp
+    left_lcp, right_lcp = 0, 0
     while left < right:
         center = int((left + right) / 2)
         center_lcp = min(left_lcp, right_lcp)
         # print(left, center, right, left_lcp, right_lcp)
         curr_str = sequence[sa[center]+center_lcp:sa[center]+query_len]
+        # print(left, center, right)
+        # print(curr_str, query_seq)
         prev_str = sequence[sa[center-1]+center_lcp:sa[center-1]+query_len]
         curr_lcp = find_lcp(query_seq[center_lcp:], curr_str) + center_lcp
         prev_lcp = find_lcp(query_seq[center_lcp:], prev_str) + center_lcp
@@ -88,6 +90,8 @@ def run_query_simpaccel(query_seq, sa, sequence, preftab, k):
             break
         elif sa[center] + curr_lcp >= len(sequence) or (curr_lcp < query_len and
                                                         sequence[sa[center]+curr_lcp] < query_seq[curr_lcp]):
+            if right-left == 1:
+                break
             left = center
             left_lcp = curr_lcp
         else:
@@ -99,7 +103,7 @@ def run_query_simpaccel(query_seq, sa, sequence, preftab, k):
     # Find right side of range
     result_right = 0
     left, right = start_left, start_right
-    left_lcp, right_lcp = start_lcp, start_lcp
+    left_lcp, right_lcp = 0, 0
     while left < right:
         center = int((left + right) / 2)
         center_lcp = min(left_lcp, right_lcp)
@@ -144,26 +148,24 @@ if __name__ == '__main__':
         for i in range(0, len(preftab_keys)):
             preftab[preftab_keys[i]] = preftab_intervals[i]
 
-    # print(sequence)
-    # print(sa)
-    # print(run_query_simpaccel('abra', sa, sequence, preftab, k))
-
     # Loading queries
     queries_fasta = FastaFile('data/' + args.queries)
 
     # Running queries
     results = {}
+    start_time = time.time()
     for i in range(0, len(queries_fasta.references)):
-        if i >= 10:
-            break
         query_name = queries_fasta.references[i]
         query_seq = queries_fasta.fetch(query_name)
+        print(query_name, query_seq)
         if args.query_mode == 'naive':
             results[query_name] = run_query_naive(query_seq, sa, sequence, preftab, k)
         elif args.query_mode == 'simpaccel':
             results[query_name] = run_query_simpaccel(query_seq, sa, sequence, preftab, k)
         else:
             print('not a valid query method')
+    end_time = time.time() - start_time
+    print(end_time)
 
     with open(f'./out_query/{args.output}.txt', 'w') as f:
         for query_name, result_list in results.items():
